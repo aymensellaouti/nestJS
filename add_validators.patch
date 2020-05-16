@@ -1,0 +1,676 @@
+Index: src/product/product.service.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/product/product.service.ts	(date 1588586153916)
++++ src/product/product.service.ts	(date 1588586153916)
+@@ -0,0 +1,26 @@
++import { Injectable, NotFoundException } from '@nestjs/common';
++import { Product } from './product.model';
++
++@Injectable()
++export class ProductService {
++  products: Product[] = [];
++
++  addProduct(title: string, description: string, price: number) {
++    const id = Math.random().toString();
++    this.products.push(new Product(id, title, description, price));
++    return id ;
++  }
++
++  getProducts() {
++    return [...this.products];
++  }
++  getProductById(id) {
++    const product = this.products.find((product) => product.id === id);
++    if (product) {
++      return {...product};
++    } else {
++      throw new NotFoundException('no product with this id');
++    }
++  }
++
++}
+Index: src/product/product.model.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/product/product.model.ts	(date 1588583542130)
++++ src/product/product.model.ts	(date 1588583542130)
+@@ -0,0 +1,12 @@
++export class Product {
++  constructor(id: string, title: string, description: string, price: number) {
++    this.id = id;
++    this.title = title;
++    this.description = description;
++    this.price = price;
++  }
++  id: string;
++  title: string;
++  description: string;
++  price: number;
++}
+Index: src/product/product.module.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/product/product.module.ts	(date 1588585181362)
++++ src/product/product.module.ts	(date 1588585181362)
+@@ -0,0 +1,10 @@
++import { Module } from '@nestjs/common';
++import { ProductController } from './product.controller';
++import { ProductService } from './product.service';
++
++@Module({
++  imports: [],
++  controllers: [ProductController],
++  providers: [ProductService]
++})
++export class ProductModule {}
+Index: src/tasks/errorMessages.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/errorMessages.ts	(date 1588682896216)
++++ src/tasks/errorMessages.ts	(date 1588682896216)
+@@ -0,0 +1,6 @@
++const ErrorMessages = {
++  isEmpty : `Le champ $property ne peut pas être vide`,
++  invalidTaskStatus: `Le champ $property ne peut pas avoir la valeur $value`
++}
++
++export default ErrorMessages;
+Index: src/tasks/pipes/task-statis-validation.pipe.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/pipes/task-statis-validation.pipe.ts	(date 1588677856258)
++++ src/tasks/pipes/task-statis-validation.pipe.ts	(date 1588677856258)
+@@ -0,0 +1,18 @@
++import { ArgumentMetadata, BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
++import { TaskStatus } from '../Task.model';
++
++@Injectable()
++export class TaskStatisValidationPipe implements PipeTransform {
++  readonly allowedStatus: string[] = [
++    TaskStatus.OPEN,
++    TaskStatus.DONE,
++    TaskStatus.IN_PROGRESS
++  ];
++  transform(status: string, metadata: ArgumentMetadata) {
++    status = status.toUpperCase();
++    if(this.allowedStatus.indexOf(status) === -1) {
++      throw new BadRequestException(`${status} is not a valid status`);
++    }
++    return status;
++  }
++}
+Index: src/tasks/DTO/create-task.dto.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/DTO/create-task.dto.ts	(date 1588669942584)
++++ src/tasks/DTO/create-task.dto.ts	(date 1588669942584)
+@@ -0,0 +1,15 @@
++import { IsNotEmpty } from 'class-validator';
++import ErrorMessages from './../errorMessages';
++export class CreateTaskDto {
++  @IsNotEmpty({
++    message: ErrorMessages.isEmpty
++  })
++  title: string;
++
++  @IsNotEmpty({
++    message: ErrorMessages.isEmpty
++  })
++  description: string;
++}
++
++
+Index: src/tasks/pipes/task-statis-validation.pipe.spec.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/pipes/task-statis-validation.pipe.spec.ts	(date 1588670158375)
++++ src/tasks/pipes/task-statis-validation.pipe.spec.ts	(date 1588670158375)
+@@ -0,0 +1,7 @@
++import { TaskStatisValidationPipe } from './task-statis-validation.pipe';
++
++describe('TaskStatisValidationPipe', () => {
++  it('should be defined', () => {
++    expect(new TaskStatisValidationPipe()).toBeDefined();
++  });
++});
+Index: src/tasks/tasks.module.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/tasks.module.ts	(date 1588590713671)
++++ src/tasks/tasks.module.ts	(date 1588590713671)
+@@ -0,0 +1,9 @@
++import { Module } from '@nestjs/common';
++import { TasksController } from './tasks.controller';
++import { TasksService } from './tasks.service';
++
++@Module({
++  controllers: [TasksController],
++  providers: [TasksService]
++})
++export class TasksModule {}
+Index: src/tasks/DTO/get-filtred-task.dto.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/DTO/get-filtred-task.dto.ts	(date 1588682960271)
++++ src/tasks/DTO/get-filtred-task.dto.ts	(date 1588682960271)
+@@ -0,0 +1,14 @@
++import { TaskStatus } from '../Task.model';
++import ErrorMessages from './../errorMessages';
++import { IsIn, IsNotEmpty, IsOptional } from 'class-validator';
++export class FilterTaskDto {
++  @IsOptional()
++  @IsIn([TaskStatus.IN_PROGRESS, TaskStatus.DONE, TaskStatus.OPEN], {
++    message: ErrorMessages.invalidTaskStatus
++  })
++  status: TaskStatus;
++
++  @IsOptional()
++  @IsNotEmpty({message : ErrorMessages.isEmpty})
++  search: string;
++}
+Index: package-lock.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- package-lock.json	(revision b686839ea55eb2cf67e4edc49ec244dae13af385)
++++ package-lock.json	(date 1588667947044)
+@@ -1098,6 +1098,13 @@
+         "iterare": "1.2.0",
+         "tslib": "1.11.1",
+         "uuid": "7.0.3"
++      },
++      "dependencies": {
++        "uuid": {
++          "version": "7.0.3",
++          "resolved": "https://registry.npmjs.org/uuid/-/uuid-7.0.3.tgz",
++          "integrity": "sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg=="
++        }
+       }
+     },
+     "@nestjs/core": {
+@@ -1112,6 +1119,13 @@
+         "path-to-regexp": "3.2.0",
+         "tslib": "1.11.1",
+         "uuid": "7.0.3"
++      },
++      "dependencies": {
++        "uuid": {
++          "version": "7.0.3",
++          "resolved": "https://registry.npmjs.org/uuid/-/uuid-7.0.3.tgz",
++          "integrity": "sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg=="
++        }
+       }
+     },
+     "@nestjs/platform-express": {
+@@ -1527,6 +1541,11 @@
+         }
+       }
+     },
++    "@types/validator": {
++      "version": "13.0.0",
++      "resolved": "https://registry.npmjs.org/@types/validator/-/validator-13.0.0.tgz",
++      "integrity": "sha512-WAy5txG7aFX8Vw3sloEKp5p/t/Xt8jD3GRD9DacnFv6Vo8ubudAsRTXgxpQwU0mpzY/H8U4db3roDuCMjShBmw=="
++    },
+     "@types/webpack": {
+       "version": "4.41.8",
+       "resolved": "https://registry.npmjs.org/@types/webpack/-/webpack-4.41.8.tgz",
+@@ -2757,6 +2776,11 @@
+         "safe-buffer": "^5.0.1"
+       }
+     },
++    "class-transformer": {
++      "version": "0.2.3",
++      "resolved": "https://registry.npmjs.org/class-transformer/-/class-transformer-0.2.3.tgz",
++      "integrity": "sha512-qsP+0xoavpOlJHuYsQJsN58HXSl8Jvveo+T37rEvCEeRfMWoytAyR0Ua/YsFgpM6AZYZ/og2PJwArwzJl1aXtQ=="
++    },
+     "class-utils": {
+       "version": "0.3.6",
+       "resolved": "https://registry.npmjs.org/class-utils/-/class-utils-0.3.6.tgz",
+@@ -2780,6 +2804,17 @@
+         }
+       }
+     },
++    "class-validator": {
++      "version": "0.12.2",
++      "resolved": "https://registry.npmjs.org/class-validator/-/class-validator-0.12.2.tgz",
++      "integrity": "sha512-TDzPzp8BmpsbPhQpccB3jMUE/3pK0TyqamrK0kcx+ZeFytMA+O6q87JZZGObHHnoo9GM8vl/JppIyKWeEA/EVw==",
++      "requires": {
++        "@types/validator": "13.0.0",
++        "google-libphonenumber": "^3.2.8",
++        "tslib": ">=1.9.0",
++        "validator": "13.0.0"
++      }
++    },
+     "cli-color": {
+       "version": "2.0.0",
+       "resolved": "https://registry.npmjs.org/cli-color/-/cli-color-2.0.0.tgz",
+@@ -4716,6 +4751,11 @@
+         }
+       }
+     },
++    "google-libphonenumber": {
++      "version": "3.2.9",
++      "resolved": "https://registry.npmjs.org/google-libphonenumber/-/google-libphonenumber-3.2.9.tgz",
++      "integrity": "sha512-PCU6Z5drRaFHNICJcurXsf6DN//ZNl0PXmPIpbHi+E1pp54GwyrhxBn57rr1nx+3mNUOMr4zeWirIKPc4ziJgw=="
++    },
+     "graceful-fs": {
+       "version": "4.2.3",
+       "resolved": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.3.tgz",
+@@ -10035,9 +10075,9 @@
+       "dev": true
+     },
+     "ts-jest": {
+-      "version": "25.2.1",
+-      "resolved": "https://registry.npmjs.org/ts-jest/-/ts-jest-25.2.1.tgz",
+-      "integrity": "sha512-TnntkEEjuXq/Gxpw7xToarmHbAafgCaAzOpnajnFC6jI7oo1trMzAHA04eWpc3MhV6+yvhE8uUBAmN+teRJh0A==",
++      "version": "25.4.0",
++      "resolved": "https://registry.npmjs.org/ts-jest/-/ts-jest-25.4.0.tgz",
++      "integrity": "sha512-+0ZrksdaquxGUBwSdTIcdX7VXdwLIlSRsyjivVA9gcO+Cvr6ByqDhu/mi5+HCcb6cMkiQp5xZ8qRO7/eCqLeyw==",
+       "dev": true,
+       "requires": {
+         "bs-logger": "0.x",
+@@ -10046,10 +10086,11 @@
+         "json5": "2.x",
+         "lodash.memoize": "4.x",
+         "make-error": "1.x",
+-        "mkdirp": "0.x",
++        "micromatch": "4.x",
++        "mkdirp": "1.x",
+         "resolve": "1.x",
+-        "semver": "^5.5",
+-        "yargs-parser": "^16.1.0"
++        "semver": "6.x",
++        "yargs-parser": "18.x"
+       },
+       "dependencies": {
+         "json5": {
+@@ -10061,15 +10102,27 @@
+             "minimist": "^1.2.5"
+           }
+         },
+-        "yargs-parser": {
+-          "version": "16.1.0",
+-          "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-16.1.0.tgz",
+-          "integrity": "sha512-H/V41UNZQPkUMIT5h5hiwg4QKIY1RPvoBV4XcjUbRM8Bk2oKqqyZ0DIEbTFZB0XjbtSPG8SAa/0DxCQmiRgzKg==",
++        "micromatch": {
++          "version": "4.0.2",
++          "resolved": "https://registry.npmjs.org/micromatch/-/micromatch-4.0.2.tgz",
++          "integrity": "sha512-y7FpHSbMUMoyPbYUSzO6PaZ6FyRnQOpHuKwbo1G+Knck95XVU4QAiKdGEnj5wwoS7PlOgthX/09u5iFJ+aYf5Q==",
+           "dev": true,
+           "requires": {
+-            "camelcase": "^5.0.0",
+-            "decamelize": "^1.2.0"
++            "braces": "^3.0.1",
++            "picomatch": "^2.0.5"
+           }
++        },
++        "mkdirp": {
++          "version": "1.0.4",
++          "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-1.0.4.tgz",
++          "integrity": "sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==",
++          "dev": true
++        },
++        "semver": {
++          "version": "6.3.0",
++          "resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
++          "integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==",
++          "dev": true
+         }
+       }
+     },
+@@ -10382,9 +10435,9 @@
+       "integrity": "sha1-n5VxD1CiZ5R7LMwSR0HBAoQn5xM="
+     },
+     "uuid": {
+-      "version": "7.0.3",
+-      "resolved": "https://registry.npmjs.org/uuid/-/uuid-7.0.3.tgz",
+-      "integrity": "sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg=="
++      "version": "8.0.0",
++      "resolved": "https://registry.npmjs.org/uuid/-/uuid-8.0.0.tgz",
++      "integrity": "sha512-jOXGuXZAWdsTH7eZLtyXMqUb9EcWMGZNbL9YcGBJl4MH4nrxHmZJhEHvyLFrkxo+28uLb/NYRcStH48fnD0Vzw=="
+     },
+     "v8-compile-cache": {
+       "version": "2.1.0",
+@@ -10413,6 +10466,11 @@
+         "spdx-expression-parse": "^3.0.0"
+       }
+     },
++    "validator": {
++      "version": "13.0.0",
++      "resolved": "https://registry.npmjs.org/validator/-/validator-13.0.0.tgz",
++      "integrity": "sha512-anYx5fURbgF04lQV18nEQWZ/3wHGnxiKdG4aL8J+jEDsm98n/sU/bey+tYk6tnGJzm7ioh5FoqrAiQ6m03IgaA=="
++    },
+     "vary": {
+       "version": "1.1.2",
+       "resolved": "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz",
+Index: package.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- package.json	(revision b686839ea55eb2cf67e4edc49ec244dae13af385)
++++ package.json	(date 1588667946409)
+@@ -24,9 +24,12 @@
+     "@nestjs/common": "^7.0.0",
+     "@nestjs/core": "^7.0.0",
+     "@nestjs/platform-express": "^7.0.0",
++    "class-transformer": "^0.2.3",
++    "class-validator": "^0.12.2",
+     "reflect-metadata": "^0.1.13",
+     "rimraf": "^3.0.2",
+-    "rxjs": "^6.5.4"
++    "rxjs": "^6.5.4",
++    "uuid": "^8.0.0"
+   },
+   "devDependencies": {
+     "@nestjs/cli": "^7.0.0",
+@@ -44,7 +47,7 @@
+     "jest": "^25.1.0",
+     "prettier": "^1.19.1",
+     "supertest": "^4.0.2",
+-    "ts-jest": "25.2.1",
++    "ts-jest": "^25.4.0",
+     "ts-loader": "^6.2.1",
+     "ts-node": "^8.6.2",
+     "tsconfig-paths": "^3.9.0",
+Index: src/tasks/tasks.controller.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/tasks.controller.ts	(date 1588683140167)
++++ src/tasks/tasks.controller.ts	(date 1588683140167)
+@@ -0,0 +1,44 @@
++import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
++import { TasksService } from './tasks.service';
++import { Task, TaskStatus } from './Task.model';
++import { CreateTaskDto } from './DTO/create-task.dto';
++import { FilterTaskDto } from './DTO/get-filtred-task.dto';
++import { TaskStatisValidationPipe } from './pipes/task-statis-validation.pipe';
++
++@Controller('tasks')
++export class TasksController {
++  constructor(private tasksService: TasksService) {
++  }
++
++  @Get('')
++  getAllTasks(
++    @Query(ValidationPipe) taskFilter: FilterTaskDto
++  ): Task[] {
++    return this.tasksService.getTasks(taskFilter);
++  }
++
++  @Get('/:id')
++  getTaskById(@Param('id') id: string): Task {
++    return this.tasksService.getTaskById(id);
++  }
++
++  @Delete('/:id')
++  deleteTaskById(@Param('id') id: string): any {
++    return this.tasksService.deleteTaskById(id);
++  }
++
++  @Post()
++  @UsePipes(ValidationPipe)
++  creatTask(
++    @Body() createTaskDto: CreateTaskDto ,
++    ) {
++    return this.tasksService.createTask(createTaskDto);
++  }
++  @Patch('/:id/status')
++  updateTask(
++    @Param('id') id: string,
++    @Body('status', TaskStatisValidationPipe) status: TaskStatus) : Task
++  {
++    return this.tasksService.updateTask(id, status);
++  }
++}
+Index: src/product/product.controller.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/product/product.controller.ts	(date 1588585962321)
++++ src/product/product.controller.ts	(date 1588585962321)
+@@ -0,0 +1,25 @@
++import { Body, Controller, Get, Param, Post } from '@nestjs/common';
++import { ProductService } from './product.service';
++
++@Controller('product')
++export class ProductController {
++  constructor(private productService: ProductService) {
++  }
++  @Post()
++  addProduct(
++    @Body('title') title: string,
++    @Body('description') description: string,
++    @Body('price') price: number,
++  ) {
++    const id = this.productService.addProduct(title, description, price);
++    return {id} ;
++  }
++  @Get()
++  getProducts() {
++    return this.productService.getProducts();
++  }
++  @Get(':id')
++  getProduct(@Param('id') id: string) {
++    return this.productService.getProductById(id);
++  }
++}
+Index: src/tasks/Task.model.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/Task.model.ts	(date 1588593448259)
++++ src/tasks/Task.model.ts	(date 1588593448259)
+@@ -0,0 +1,47 @@
++export class Task {
++  get id(): string {
++    return this._id;
++  }
++
++  set id(value: string) {
++    this._id = value;
++  }
++
++  get title(): string {
++    return this._title;
++  }
++
++  set title(value: string) {
++    this._title = value;
++  }
++
++  get description(): string {
++    return this._description;
++  }
++
++  set description(value: string) {
++    this._description = value;
++  }
++
++  get status(): TaskStatus {
++    return this._status;
++  }
++
++  set status(value: TaskStatus) {
++    this._status = value;
++  }
++
++  constructor(
++    private _id: string,
++    private _title: string,
++    private _description: string,
++    private _status: TaskStatus
++  ) {
++  }
++}
++
++export enum TaskStatus {
++  OPEN = 'OPEN',
++  IN_PROGRESS = 'IN_PROGRESS',
++  DONE = 'DONE'
++}
+Index: src/product/product.controller.spec.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/product/product.controller.spec.ts	(date 1588583245137)
++++ src/product/product.controller.spec.ts	(date 1588583245137)
+@@ -0,0 +1,18 @@
++import { Test, TestingModule } from '@nestjs/testing';
++import { ProductController } from './product.controller';
++
++describe('Product Controller', () => {
++  let controller: ProductController;
++
++  beforeEach(async () => {
++    const module: TestingModule = await Test.createTestingModule({
++      controllers: [ProductController],
++    }).compile();
++
++    controller = module.get<ProductController>(ProductController);
++  });
++
++  it('should be defined', () => {
++    expect(controller).toBeDefined();
++  });
++});
+Index: src/tasks/tasks.service.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/tasks/tasks.service.ts	(date 1588668801130)
++++ src/tasks/tasks.service.ts	(date 1588668801130)
+@@ -0,0 +1,61 @@
++import { Injectable, NotFoundException } from '@nestjs/common';
++import { Task, TaskStatus } from './Task.model';
++import { v4 as uuidv4 } from 'uuid';
++import { CreateTaskDto } from './DTO/create-task.dto';
++import { FilterTaskDto } from './DTO/get-filtred-task.dto';
++
++@Injectable()
++export class TasksService {
++  private tasks: Task[] = [];
++  getAllTasks(): Task[] {
++    return this.tasks;
++  }
++
++  getTaskById(id): Task {
++    const task = this.tasks.find(task => task.id === id);
++    if (!task) {
++      throw new NotFoundException(`Le task d'id ${id} n'existe pas`);
++    }
++
++    return task;
++  }
++
++  createTask(createTaskDto: CreateTaskDto) {
++    const {title, description} = createTaskDto;
++    const task = new Task(uuidv4(), title, description, TaskStatus.OPEN);
++    this.tasks.push(task);
++    return task;
++  }
++
++  deleteTaskById(id: string) {
++    console.log('id',id);
++    this.tasks = this.tasks.filter(task => task.id !== id);
++  }
++
++  updateTask(id: string, status: TaskStatus): Task {
++    const task = this.getTaskById(id);
++    task.status = status;
++    return task;
++  }
++
++  getTasks(taskFilter: FilterTaskDto): Task[] {
++    let tasks = [];
++
++    if (Object.keys(taskFilter).length) {
++      const {status, search} = taskFilter;
++      if (status) {
++        tasks = this.tasks.filter(task => task.status === status);
++      }
++
++      if (search) {
++        tasks = this.tasks.filter( (task) => {
++          return task.title.includes(search) ||
++            task.description.includes(search);
++        })
++      }
++    } else {
++      tasks = this.getAllTasks();
++    }
++    return tasks;
++  }
++}
+Index: src/app.module.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/app.module.ts	(revision b686839ea55eb2cf67e4edc49ec244dae13af385)
++++ src/app.module.ts	(date 1588587700529)
+@@ -1,9 +1,11 @@
+ import { Module } from '@nestjs/common';
+ import { AppController } from './app.controller';
+ import { AppService } from './app.service';
++import { ProductModule } from './product/product.module';
++import { TasksModule } from './tasks/tasks.module';
+ 
+ @Module({
+-  imports: [],
++  imports: [ProductModule, TasksModule],
+   controllers: [AppController],
+   providers: [AppService],
+ })
+Index: src/product/product.service.spec.ts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/product/product.service.spec.ts	(date 1588583364818)
++++ src/product/product.service.spec.ts	(date 1588583364818)
+@@ -0,0 +1,18 @@
++import { Test, TestingModule } from '@nestjs/testing';
++import { ProductService } from './product.service';
++
++describe('ProductService', () => {
++  let service: ProductService;
++
++  beforeEach(async () => {
++    const module: TestingModule = await Test.createTestingModule({
++      providers: [ProductService],
++    }).compile();
++
++    service = module.get<ProductService>(ProductService);
++  });
++
++  it('should be defined', () => {
++    expect(service).toBeDefined();
++  });
++});
