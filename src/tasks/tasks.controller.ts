@@ -22,7 +22,6 @@ import { GetUser } from '../auth/get-user.decorator';
 import { User } from '../auth/user.entity';
 
 @Controller('tasks')
-@UseGuards(AuthGuard())
 export class TasksController {
   constructor(private tasksService: TasksService) {
   }
@@ -36,6 +35,7 @@ export class TasksController {
   }
 
   @Get('/:id')
+  @UsePipes(ValidationPipe)
   getTaskById(
     @Param(
       'id',
@@ -45,6 +45,7 @@ export class TasksController {
     return this.tasksService.getTaskById(id, user);
   }
 
+  @UseGuards(AuthGuard())
   @Delete('/:id')
   async deleteTaskById(
     @Param('id', ParseIntPipe) id: string,
@@ -56,6 +57,7 @@ export class TasksController {
     }
   }
 
+  @UseGuards(AuthGuard())
   @Post()
   @UsePipes(ValidationPipe)
   creatTask(
@@ -64,6 +66,8 @@ export class TasksController {
     ): Promise<Task> {
     return this.tasksService.createTask(createTaskDto, user);
   }
+
+  @UseGuards(AuthGuard())
   @Patch('/:id/status')
   updateTask(
     @Param('id', ParseIntPipe) id: number,
