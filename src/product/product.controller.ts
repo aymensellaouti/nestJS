@@ -7,6 +7,7 @@ export class ProductController {
   }
   @Post()
   addProduct(
+    @Body() product,
     @Body('title') title: string,
     @Body('description') description: string,
     @Body('price') price: number,
